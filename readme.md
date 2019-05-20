@@ -1,6 +1,5 @@
-﻿# LM2L
-(Luigi's Mansion 2L(like Tool, but with a stupid pun))
-Janky program for extracting files from data/dict in LM2 and extracting textures from those
+﻿# NLG Tool
+Branch of LM2L aiming to support relatively same formats from Punch-Out Wii and maybe some other NLG developed games.
 
 #### Usecases
 * Extract data/dict archive pair along with necessery decompression

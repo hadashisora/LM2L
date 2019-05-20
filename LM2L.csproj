@@ -60,6 +60,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CMPR.cs" />
+    <Compile Include="HashIdFinder.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="HashIdFinder.Designer.cs">
+      <DependentUpon>HashIdFinder.cs</DependentUpon>
+    </Compile>
     <Compile Include="Help.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -82,8 +89,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="readme.md" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="HashIdFinder.resx">
+      <DependentUpon>HashIdFinder.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Help.resx">
       <DependentUpon>Help.cs</DependentUpon>
     </EmbeddedResource>

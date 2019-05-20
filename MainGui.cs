@@ -29,7 +29,12 @@ namespace LM2L
 
         private void button1_Click(object sender, EventArgs e)
         {
-            new LM2L.Help().Show();
+            new Help().Show();
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            new HashIdFinder().Show();
         }
     }
 }
