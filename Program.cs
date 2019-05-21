@@ -51,7 +51,7 @@ namespace LM2L
                     //Read data from file
                     item.number = counter;
                     item.id = PoweReader.ReadUInt32();
-                    item.unk = PoweReader.ReadUInt32();
+                    item.length = PoweReader.ReadUInt32();
                     item.idCopy = PoweReader.ReadUInt32();
                     PoweReader.BaseStream.Position += 0x8; //Skip some data that isn't useful for us
                     item.width = PoweReader.ReadUInt16();
@@ -64,7 +64,7 @@ namespace LM2L
                     //Print some debug info
                     DebugPrint("Powe Section:" + counter, toCMD, toTXT);
                     DebugPrint("\rID          : 0x" + Convert.ToString(item.id, 16), toCMD, toTXT);
-                    DebugPrint("\rUnk uint    : 0x" + Convert.ToString(item.unk, 16), toCMD, toTXT);
+                    DebugPrint("\rLength      : 0x" + Convert.ToString(item.length, 16), toCMD, toTXT);
                     DebugPrint("\rID copy     : 0x" + Convert.ToString(item.idCopy, 16), toCMD, toTXT);
                     DebugPrint("\rWidth       : " + item.width, toCMD, toTXT);
                     DebugPrint("\rHeight      : " + item.height, toCMD, toTXT);
@@ -106,7 +106,7 @@ namespace LM2L
                         if (doMipmaps) texture.Save(folderPath + (numberFiles ? (string.Format("{0:D2}", entry.number) + "_") : "") + Convert.ToString(entry.id, 16) + "_mip" + i + ".png", ImageFormat.Png); //Write texture file when extracting mipmaps. The only difference is "_mipmap№" being added at the end of filename
                         else texture.Save(folderPath + (numberFiles ? (string.Format("{0:D2}", entry.number) + "_") : "") + Convert.ToString(entry.id, 16) + ".png", ImageFormat.Png); //Same as above, just for when we don't extract mipmaps
                     }
-                    //Calculate the adress of the next texture with some simple math
+                    //Calculate the adress of the next texture/mipmap with some simple math, not using the actual length parameter, because it counts the whole texture with mipmaps
                     if (entry.texFmt == (byte)CtrTexFormat.ETC1) TexReader.BaseStream.Position += (width * height) / 2; //Apparently the size of an etc1 texture in bytes is just (width*height)/2
                     if (entry.texFmt == (byte)CtrTexFormat.ETC1_A4) TexReader.BaseStream.Position += width * height; //And etc1a4 is just simply width*height
                 }
@@ -213,7 +213,7 @@ namespace LM2L
 
             //Powe magic
             public uint id;       //0x4, texture id, unique for each texture in most cases(though some identical textures in different archives have the same id)
-            public uint unk;      //0x8, same between all textures with exactly same dimentions and texture format, exact purpose unknown
+            public uint length;      //0x8, length of the texture in bytes(including mipmaps)
             public uint idCopy;   //0xC, seems to be a copy of id
             //Whole buncha other (mostly empty or constant) data here, purpose unknown
             public ushort width;    //0x18, texture width
