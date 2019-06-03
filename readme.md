@@ -1,15 +1,16 @@
 ﻿# LM2L
 (Luigi's Mansion 2L(like Tool, but with a stupid pun))
-Janky program for extracting files from data/dict in LM2 and extracting textures from those
+Janky program for extracting and parsing files found in Luigi's Mansion 2: Dark Moon
 
 #### Usecases
 * Extract data/dict archive pair along with necessery decompression
 * Extract textures from files within data/dict and decode them from ETC1(A4)
+* Somewhat parse file000 structure into a readable txt file
 
 #### Usage for extracting data/dict pair
 * You should understand that each data/dict is a pair, so you can't use one dict to extract other data(correctly that is)
-1. Input path into the correct fields
-2. Check options
+1. Input paths into correct fields
+2. Check options as needed
 2. Click `Go!`
 
 ##### data/dict extraction options
@@ -22,7 +23,7 @@ Janky program for extracting files from data/dict in LM2 and extracting textures
 * Powe path should be that of a file which starts with `PÓwé`(in ASCII/cp1252). It's usually the file002
 * File which contains the actual texture data usually is the one right after Powe file.
 1. Input paths
-2. Check options
+2. Check options as needed
 2. Click `Go!`
 
 ##### texture extraction options
@@ -39,7 +40,7 @@ Janky program for extracting files from data/dict in LM2 and extracting textures
 #### TODO:
 * (in no particular order, also I give no warranty that I'm gonna do any of those things in the near future)
 * Find out the full specifics of dict files
-* Completely understand the model format(I know that a person on vgresource has already figured out some important stuff, but we need more specifics of the format)
+* Completely understand the model format(I know that a person on vgresource has already figured out some important stuff, but we need more specifics on the format)
 * Make an extractor for models(to either wavefront or collada, or both)
 * Find and reverse animation and cutscene data and make a thing to export it
 * Figure out what purpose other files inside data/dict archives serve, like the file000 which usually begins with 0x01130002
@@ -52,7 +53,7 @@ Janky program for extracting files from data/dict in LM2 and extracting textures
 ##### Unwanted features (basically embarassement section for myself)
 * Messy yet somehow working code
 * Inconsistencies in coding style
-* Abominable GUI which is unintuitive and uncofortable to use by all means
+* Abominable GUI which is unintuitive and uncomfortable to use by all means
 * (Adding more salt to previous point) no CLI interface whatsoever
 * Too many jokes/slang in comments
 * A lot of broken grammar and typos

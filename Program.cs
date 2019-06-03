@@ -27,7 +27,7 @@ namespace LM2L
             Console.WriteLine("exception related to file handling(not to incompetence of the");
             Console.WriteLine("user to correctly input the proper file paths) please report");
             Console.WriteLine("to the GitHub issues page with files that caused the crash in");
-            Console.WriteLine("attachements to the it.");
+            Console.WriteLine("attachements to it.");
             var gui = new MainGui();
             Application.Run(gui);
         }
@@ -203,35 +203,35 @@ namespace LM2L
 
         public static void ParseFileZero(string ZeroPath)
         {
-            BinaryReader br = new BinaryReader(File.OpenRead(ZeroPath));
-            output = "";
+            BinaryReader br = new BinaryReader(File.OpenRead(ZeroPath)); //Open file
+            output = ""; //Clear out the string where we'll print our output text
             while (br.ReadUInt32() == 0x2001301)
             {
-                br.BaseStream.Position += 0x14; //Skip all 0x2001301 sections
+                br.BaseStream.Position += 0x14; //Skip all 0x2001301 sections, since purpose of those is unknown as of this point
             }
-            br.BaseStream.Position -= 0x4;
-            while (br.BaseStream.Position < br.BaseStream.Length)
+            br.BaseStream.Position -= 0x4; //Go four bytes back, because the previous loop read these to check for next section
+            while (br.BaseStream.Position < br.BaseStream.Length) //Loop through as many entries as we can before the file ends
             {
-                try
+                try //Put this whole contraption into a try-catch clause, just in case we reach EOF or something else goes wrong
                 {
-                    output += "Thing1: 0x" + string.Format("{0:X4}", br.ReadUInt16()); //Format identifier
-                    //FMTS:
+                    output += "FmtID:         0x" + string.Format("{0:X4}", br.ReadUInt16()); //Format identifier
+                    //FMTS(entry types):
                     //0xB004 - vertex buffer pointers for submeshes
                     //0xB005 - vertex buffer
                     //0xB006 - IDK
                     //0xB501 - useless crap, points into the middle of data
                     //0xB502 - texture
                     
-                    output += "\nThing2: 0x" + string.Format("{0:X4}", br.ReadUInt16());
-                    output += "\nLength: 0x" + string.Format("{0:X8}", br.ReadUInt32());
-                    output += "\nStart offset: 0x" + string.Format("{0:X8}", br.ReadUInt32()) + "\n\r";
+                    output += "\nThing2:       0x" + string.Format("{0:X4}", br.ReadUInt16()); //IDK what this is
+                    output += "\nLength:       0x" + string.Format("{0:X8}", br.ReadUInt32()); //Length of subfile (in file002) in bytes
+                    output += "\nStart offset: 0x" + string.Format("{0:X8}", br.ReadUInt32()) + "\n\r"; //Start offset of file (again in file002, relative to it's beginning)
                 }
                 catch
                 {
-
+                    //Don't do anything if something goes wrong
                 }
             }
-            File.WriteAllText(Path.ChangeExtension(ZeroPath, "txt"), output);
+            File.WriteAllText(Path.ChangeExtension(ZeroPath, "txt"), output); //Flush text into a file
         }
 
         public static void DebugPrint(string text, bool CMD, bool TXT)
