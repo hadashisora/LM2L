@@ -201,6 +201,39 @@ namespace LM2L
             Console.WriteLine("Done!");
         }
 
+        public static void ParseFileZero(string ZeroPath)
+        {
+            BinaryReader br = new BinaryReader(File.OpenRead(ZeroPath));
+            output = "";
+            while (br.ReadUInt32() == 0x2001301)
+            {
+                br.BaseStream.Position += 0x14; //Skip all 0x2001301 sections
+            }
+            br.BaseStream.Position -= 0x4;
+            while (br.BaseStream.Position < br.BaseStream.Length)
+            {
+                try
+                {
+                    output += "Thing1: 0x" + string.Format("{0:X4}", br.ReadUInt16()); //Format identifier
+                    //FMTS:
+                    //0xB004 - vertex buffer pointers for submeshes
+                    //0xB005 - vertex buffer
+                    //0xB006 - IDK
+                    //0xB501 - useless crap, points into the middle of data
+                    //0xB502 - texture
+                    
+                    output += "\nThing2: 0x" + string.Format("{0:X4}", br.ReadUInt16());
+                    output += "\nLength: 0x" + string.Format("{0:X8}", br.ReadUInt32());
+                    output += "\nStart offset: 0x" + string.Format("{0:X8}", br.ReadUInt32()) + "\n\r";
+                }
+                catch
+                {
+
+                }
+            }
+            File.WriteAllText(Path.ChangeExtension(ZeroPath, "txt"), output);
+        }
+
         public static void DebugPrint(string text, bool CMD, bool TXT)
         {
             if (CMD) Console.WriteLine(text);

@@ -123,7 +123,7 @@
 Credits: 
 * gdkchan - ETC1(A4) decoder from Ohana3DS-Rebirth
 * A Blob, TrueDread, Manters (all from vg-resource.com) - discovering/posting info about this game. While not much, the info they posted was quite a bit of help to start things off
-* Twilighter(also from vg-resource.com) - reversing the model format. While I wasn't able to get any useful info from his doc(because I'm a moron), someone might. See https://www.vg-resource.com/thread-32118.html for more info
+* Twilighter(also from vg-resource.com) - reversing the model format. See https://www.vg-resource.com/thread-32118.html for more info
 * RoadrunnerWMC - probably the first person to post anything useful about this game's internals, being the nloc python script, which provided me with some clues on how .dict files actually work
 * CHEMI6DER/TheFearsomeDzeraora(me) - RE, abominable GUI and all file handling code you see in this program(and also grammar mistakes(and typos) and stupid comments all over the said code)</value>
   </data>

@@ -31,6 +31,11 @@ Janky program for extracting files from data/dict in LM2 and extracting textures
 * `Print file info` prints readable representation of Powe sections into CMD or txt file, useful if you're planning on reinjecting edited stuff
 * `Flip Y axis` flips the output image vertically, so that it looks correct(because game stores textures upside-down). Uncheck this if you don't want textures to be flipped at output(may be useful when injecting textures)
 
+##### File000 parser usage
+* __Input file000 for parsing__
+* This will read all data entries in file000 and write the decoded data to a text file into the same directory
+* Beware that this is kinda experimental...if you wanna know what some format identifiers are, go look in ParseFileZero in Program.cs
+
 #### TODO:
 * (in no particular order, also I give no warranty that I'm gonna do any of those things in the near future)
 * Find out the full specifics of dict files

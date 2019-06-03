@@ -31,5 +31,10 @@ namespace LM2L
         {
             new LM2L.Help().Show();
         }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            ParseFileZero(textBox5.Text);
+        }
     }
 }
