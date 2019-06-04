@@ -214,17 +214,36 @@ namespace LM2L
             {
                 try //Put this whole contraption into a try-catch clause, just in case we reach EOF or something else goes wrong
                 {
-                    output += "FmtID:         0x" + string.Format("{0:X4}", br.ReadUInt16()); //Format identifier
+                    output += "FmtID:        0x" + string.Format("{0:X8}", br.ReadUInt32()); //Format identifier
+
                     //FMTS(entry types):
-                    //0xB004 - vertex buffer pointers for submeshes
-                    //0xB005 - vertex buffer
-                    //0xB006 - IDK
-                    //0xB501 - useless crap, points into the middle of data
-                    //0xB502 - texture
-                    
-                    output += "\nThing2:       0x" + string.Format("{0:X4}", br.ReadUInt16()); //IDK what this is
-                    output += "\nLength:       0x" + string.Format("{0:X8}", br.ReadUInt32()); //Length of subfile (in file002) in bytes
-                    output += "\nStart offset: 0x" + string.Format("{0:X8}", br.ReadUInt32()) + "\n\r"; //Start offset of file (again in file002, relative to it's beginning)
+                    //0x0201B501 - useless crap, startOffset points into the middle of other data
+                    //0x1201B002 -
+                    //0x1201B003 - submesh info
+                    //0x1201B004 - vertex start offset pointers for submeshes
+                    //0x1201B006 - material(s)?
+                    //0x1201B007 - lotsa 0xFFFFFFFF with some data inbetween
+                    //0x1201B008 -
+                    //0x1201B009 -
+                    //0x1201B101 -
+                    //0x1201B102 -
+                    //0x1201B103 -
+                    //0x1301B001 -
+                    //0x1301B005 - vertex and index buffer
+                    //0x1701B502 - texture
+                    //0x9201B100 -
+
+                    //*Unrelated to this code* My attempt to decipher submesh info
+                    //size is 0x28, there are as many of these as vertex start offset pointers
+                    //@0x0 uint32 indexStartOffset, relative to buffer start
+                    //@0x4 uint16 indexCount
+                    //IDK what data inbetween is
+                    //@0x20 uint16 vertexCount
+
+                    //One question still remains: where the heck are UVs?
+
+                    output += "\nLength:       0x" + string.Format("{0:X8}", br.ReadUInt32()); //Length of subfile (in file003) in bytes
+                    output += "\nStart offset: 0x" + string.Format("{0:X8}", br.ReadUInt32()) + "\n\r"; //Start offset of file (again in file003, relative to it's beginning)
                 }
                 catch
                 {
