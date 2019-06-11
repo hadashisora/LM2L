@@ -239,6 +239,8 @@ namespace LM2L
                     //@0x4 uint16 indexCount
                     //IDK what data inbetween is
                     //@0x20 uint16 vertexCount
+                    //@0x22 uint16 idkEven, always 0x100?
+                    //@0x24 uint32 hashID
 
                     //One question still remains: where the heck are UVs?
 
@@ -583,4 +585,4 @@ namespace LM2L
         }
         #endregion
     }
-}
+} //Welp LM3 is developed by NLG too...(just watched E3 Direct and TreeHouse Live btw)...I'm expecting the same butload of awful file formats in the new game, unless they rewrote the engine
