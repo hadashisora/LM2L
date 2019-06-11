@@ -218,6 +218,9 @@ namespace LM2L
 
                     //FMTS(entry types):
                     //0x0201B501 - useless crap, startOffset points into the middle of other data
+                    //0x12017103 -
+                    //0x12017104 -
+                    //0x12017105 - some sort of table
                     //0x1201B002 -
                     //0x1201B003 - submesh info
                     //0x1201B004 - vertex start offset pointers for submeshes
@@ -228,16 +231,22 @@ namespace LM2L
                     //0x1201B101 -
                     //0x1201B102 -
                     //0x1201B103 -
-                    //0x1301B001 -
+                    //0x1301B001 - mostly 0x3F800000 and null, always of size 0x40
                     //0x1301B005 - vertex and index buffer
                     //0x1701B502 - texture
                     //0x9201B100 -
 
                     //*Unrelated to this code* My attempt to decipher submesh info
                     //size is 0x28, there are as many of these as vertex start offset pointers
-                    //@0x0 uint32 indexStartOffset, relative to buffer start
-                    //@0x4 uint16 indexCount
-                    //IDK what data inbetween is
+                    //@0x00 uint32 indexStartOffset, relative to buffer start
+                    //@0x04 uint16 indexCount
+                    //@0x06 uint16 idkEven
+                    //@0x08 uint16 idkEven, increments by 0x4 with each subsequent entry
+                    //@0x0A uint16 idkEven
+                    //@0x0C uint64 somethingVertexDataStructureRelated
+                    //@0x14 uint32 idkEven, always null?
+                    //@0x18 uint32 idkEven, always null?
+                    //@0x1C uint32 idkEven, increments with each subsequent entry
                     //@0x20 uint16 vertexCount
                     //@0x22 uint16 idkEven, always 0x100?
                     //@0x24 uint32 hashID
