@@ -239,7 +239,7 @@ namespace LM2L
                     //*Unrelated to this code* My attempt to decipher submesh info
                     //size is 0x28, there are as many of these as vertex start offset pointers
                     //@0x00 uint32 indexStartOffset, relative to buffer start
-                    //@0x04 uint16 indexCount
+                    //@0x04 uint16 indexCount, divide by 3 to get face count
                     //@0x06 uint16 idkEven
                     //@0x08 uint16 idkEven, increments by 0x4 with each subsequent entry
                     //@0x0A uint16 idkEven
@@ -251,7 +251,12 @@ namespace LM2L
                     //@0x22 uint16 idkEven, always 0x100?
                     //@0x24 uint32 hashID
 
-                    //One question still remains: where the heck are UVs?
+                    //vertex/index data format identifiers:
+                    //0x63503799 72D28D0D - short vertex, byte index
+                    //0xDC0291B3 11E26127 - short vertex, ushort index
+                    //0x93359708 679BEB7C
+                    //0x1A833CEE C88C1762
+                    //0xD81AC10B 8980687F
 
                     output += "\nLength:       0x" + string.Format("{0:X8}", br.ReadUInt32()); //Length of subfile (in file003) in bytes
                     output += "\nStart offset: 0x" + string.Format("{0:X8}", br.ReadUInt32()) + "\n\r"; //Start offset of file (again in file003, relative to it's beginning)
@@ -274,10 +279,10 @@ namespace LM2L
         {
             public int number; //Not actually part of the stored data, just for keeping track of these
 
-            //Powe magic
-            public uint id;       //0x4, texture id, unique for each texture in most cases(though some identical textures in different archives have the same id)
-            public uint length;      //0x8, length of the texture in bytes(including mipmaps)
-            public uint idCopy;   //0xC, seems to be a copy of id
+            public uint magic;      //0x0, Powe magicb bytes
+            public uint id;         //0x4, texture id, unique for each texture in most cases(though some identical textures in different archives have the same id)
+            public uint length;     //0x8, length of the texture in bytes(including mipmaps)
+            public uint idCopy;     //0xC, seems to be a copy of id
             //Whole buncha other (mostly empty or constant) data here, purpose unknown
             public ushort width;    //0x18, texture width
             public ushort height;   //0x1A, texture height
@@ -288,11 +293,10 @@ namespace LM2L
 
         public class FileTableEntry
         {
-            public uint startOffset; //0x0, offset at which the file starts in the data
-            public uint decompressedLength; //0x4, file length after decompression(present whether the data is compressed or not, so for data without compression this is the file size)
-            public uint compressedLength; //0x8, file length in compressed form(only present if compression is used, other wise equals null)
-            public uint unk; //0xC, probably file attributes
-            //public byte[] unk = new byte[4]; //0xC, probably file attributes
+            public uint startOffset;            //0x0, offset at which the file starts in the data
+            public uint decompressedLength;     //0x4, file length after decompression(present whether the data is compressed or not, so for data without compression this is the file size)
+            public uint compressedLength;       //0x8, file length in compressed form(only present if compression is used, other wise equals null)
+            public uint unk;                    //0xC, probably file attributes
         }
 
         public static byte[] DecompressZLib(byte[] data)

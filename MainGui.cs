@@ -36,5 +36,16 @@ namespace LM2L
         {
             ParseFileZero(textBox5.Text);
         }
+
+        private void Button4_Click(object sender, EventArgs e)
+        {
+            ModelThingy thing = new ModelThingy();
+            thing.Show();
+        }
+
+        private void Button5_Click(object sender, EventArgs e)
+        {
+            ModelThingy.parseFiles(textBox6.Text, textBox7.Text, textBox8.Text);
+        }
     }
 }
