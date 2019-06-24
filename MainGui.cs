@@ -45,7 +45,7 @@ namespace LM2L
 
         private void Button5_Click(object sender, EventArgs e)
         {
-            ModelThingy.parseFiles(textBox6.Text, textBox7.Text, textBox8.Text);
+            ModelThingy.ParseFiles(textBox6.Text, textBox7.Text, textBox8.Text);
         }
     }
 }

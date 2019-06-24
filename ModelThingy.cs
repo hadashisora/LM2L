@@ -236,12 +236,36 @@ namespace LM2L
         }
 
         /// <summary>
+        /// Decodes floating point numbers encoded as signed 16-bit integers.
+        /// <para>Note: this code assumes the input is in LE byte order.</para>
+        /// </summary>
+        /// <param name="input">Float encoded as a 16-bit signed integer.</param>
+        /// <returns>Single precision floating point number decoded from input.</returns>
+        public static float UShortToFloatDecode(short input)
+        {
+            //I'll have to write a short doc here, because the entirety of the internet
+            //doesn't have even a single explaination on how this actually works, and I
+            //really struggled because of that.
+
+            //This assumes the ushort is in LE, for BE the values are swapped around.
+            //Basically the first byte stores the fraction of the number, we can calculate
+            //it by normalizing the 0-255 range to be 0.0-1.0(not to 1.0 but close).
+            //The second byte is the signed integer part, it doesn't even have to be 
+            //normalized.
+            //Then we just add the two together to get the final result!
+
+            float fraction = (float)BitConverter.GetBytes(input)[0] / (float)256; //VS says the cast is redundant, but in fact VS is retarded, because it doesn't divide as pure float if you don't cast the numbers
+            sbyte integer = (sbyte)BitConverter.GetBytes(input)[1];
+            return integer + fraction;
+        }
+
+        /// <summary>
         /// Parses model data from LM2 files
         /// </summary>
         /// <param name="file000path">Path to file000</param>
         /// <param name="file002path">Path to file002</param>
         /// <param name="file003path">Path to file003</param>
-        public static void parseFiles(string file000path, string file002path, string file003path)
+        public static void ParseFiles(string file000path, string file002path, string file003path)
         {
             //Create lists and variables
             List<FileEntry> files = listFileContents(file000path);
@@ -285,8 +309,10 @@ namespace LM2L
                         break;
                 }
             }
-            //Additional check for leftover model group
+            //Save the last model group, as there's no section that signals the end of it
             if (group != new modelGroup()) groups.Add(group);
+
+
         }
 
         static texture ReadTextureMeta(BinaryReader br, uint length, uint offset)
