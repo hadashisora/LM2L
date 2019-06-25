@@ -153,7 +153,7 @@ namespace LM2L
             }
         }
 
-        class submeshInfo
+        class SubmeshInfo
         {
             public uint indexStartOffset; //relative to buffer start
             public ushort indexCount; //divide by 3 to get face count
@@ -168,7 +168,7 @@ namespace LM2L
             public ushort idkEven7; //always 0x100?
             public uint hashID;
 
-            public submeshInfo(uint indexStartOffset, ushort indexCount, ushort idkEven1, ushort idkEven2, ushort idkEven3, ulong dataFormat, uint idkEven4,
+            public SubmeshInfo(uint indexStartOffset, ushort indexCount, ushort idkEven1, ushort idkEven2, ushort idkEven3, ulong dataFormat, uint idkEven4,
                 uint idkEven5, uint idkEven6, ushort vertexCount, ushort idkEven7, uint hashID)
             {
                 this.indexStartOffset = indexStartOffset;
@@ -189,7 +189,7 @@ namespace LM2L
         /// <summary>
         /// Represents a texture
         /// </summary>
-        class texture
+        class Texture
         {
             public uint length;
             public uint offset;
@@ -203,17 +203,17 @@ namespace LM2L
         /// <summary>
         /// Represents model data that includes vertex and other stuff and index data
         /// </summary>
-        class modelData
+        class ModelData
         {
             public uint length;
             public uint offset;
 
-            public modelData()
+            public ModelData()
             {
 
             }
 
-            public modelData(uint length, uint offset)
+            public ModelData(uint length, uint offset)
             {
                 this.length = length;
                 this.offset = offset;
@@ -223,16 +223,30 @@ namespace LM2L
         /// <summary>
         /// Represents a group of models that share the same data
         /// </summary>
-        class modelGroup
+        class ModelGroup
         {
             //public List<material> materials = new List<material>();
-            public modelData mdlData = new modelData();
+            public ModelData mdlData = new ModelData();
             public List<uint> vtxPointers = new List<uint>();
             //that other weird section here
-            public List<submeshInfo> submeshMeta = new List<submeshInfo>();
+            public List<SubmeshInfo> submeshMeta = new List<SubmeshInfo>();
             //Everything else goes here
             //As you can probably tell, I have no idea what other
             //sections do ATM, so that comment will have to represent them
+        }
+
+        class Triangle
+        {
+            public ushort vertex1;
+            public ushort vertex2;
+            public ushort vertex3;
+
+            public Triangle(ushort vertex1, ushort vertex2, ushort vertex3)
+            {
+                this.vertex1 = vertex1;
+                this.vertex2 = vertex2;
+                this.vertex3 = vertex3;
+            }
         }
 
         /// <summary>
@@ -253,11 +267,50 @@ namespace LM2L
             //The second byte is the signed integer part, it doesn't even have to be 
             //normalized.
             //Then we just add the two together to get the final result!
+            //The same can be achieved by just dividing the whole short by 256 as float.
+            //I split it just so one can understand the working principle better.
 
             float fraction = (float)BitConverter.GetBytes(input)[0] / (float)256; //VS says the cast is redundant, but in fact VS is retarded, because it doesn't divide as pure float if you don't cast the numbers
             sbyte integer = (sbyte)BitConverter.GetBytes(input)[1];
             return integer + fraction;
         }
+
+        public static Vector2 NormalizeSignedUvCoordsToFloat(short inU, short inV)
+        {
+            float U = 0;
+            float V = 0;
+            //Normalize U coordinate
+            if (inU >= 0)
+            {
+                U = ((float)inU / (float)0xFFFE) + 0.5f; //Normalize positive range
+            }
+            else
+            {
+                U = ((float)inU / (float)0xFFFE) + 0.5f; //Normalize negative range
+            }
+            //Normalize V coordinate
+            if (inV >= 0)
+            {
+                V = ((float)inV / (float)0xFFFE) + 0.5f; //Normalize positive range
+            }
+            else
+            {
+                V = ((float)inV / (float)0xFFFE) + 0.5f; //Normalize negative range
+            }
+            return new Vector2(U, V);
+        }
+
+        public static Vector2 NormalizeUvCoordsToFloat(ushort inU, ushort inV)
+        {
+            float U = 0;
+            float V = 0;
+            //Normalize U coordinate
+            U = ((float)inU / (float)0xFFFF);
+            //Normalize V coordinate
+            V = ((float)inV / (float)0xFFFF);
+            return new Vector2(U, V);
+        }
+
 
         /// <summary>
         /// Parses model data from LM2 files
@@ -269,16 +322,18 @@ namespace LM2L
         {
             //Create lists and variables
             List<FileEntry> files = listFileContents(file000path);
-            List<texture> textures = new List<texture>();
-            List<modelGroup> groups = new List<modelGroup>();
-            modelGroup group = null; //Current model group that we append stuff to
+            List<Texture> textures = new List<Texture>();
+            List<ModelGroup> groups = new List<ModelGroup>();
+            ModelGroup group = null; //Current model group that we append stuff to
             uint count = 0; //Temporary counter
 
             //Open readers
             BinaryReader br2 = new BinaryReader(File.OpenRead(file002path));
             BinaryReader br3 = new BinaryReader(File.OpenRead(file003path));
 
-            //Actual parsing
+            //Metadata parsing, sets everything up for later stages
+            //This is obviously far from complete, as IDK most of
+            //format identifiers
             foreach (var file in files)
             {
                 switch (file.type)
@@ -290,10 +345,10 @@ namespace LM2L
                     case DataTypes.unk006:
                         //This section always begins a new model group
                         if (group != null) groups.Add(group);
-                        group = new modelGroup();
+                        group = new ModelGroup();
                         break;
                     case DataTypes.meshData:
-                        group.mdlData = new modelData(file.length, file.offset);
+                        group.mdlData = new ModelData(file.length, file.offset);
                         break;
                     case DataTypes.vtxStartOffset:
                         br3.BaseStream.Position = file.offset; //Jump to location
@@ -305,20 +360,170 @@ namespace LM2L
                         if (count != (file.length / 0x28)) Console.WriteLine("A mismatch happened with model groups!");
                         count = file.length / 0x28;
                         for (uint i = 0; i < count; i++)
-                            group.submeshMeta.Add(new submeshInfo(br3.ReadUInt32(), br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt64(), br3.ReadUInt32(), br3.ReadUInt32(), br3.ReadUInt32(), br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt32()));
+                            group.submeshMeta.Add(new SubmeshInfo(br3.ReadUInt32(), br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt64(), br3.ReadUInt32(), br3.ReadUInt32(), br3.ReadUInt32(), br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt32()));
                         break;
                 }
             }
             //Save the last model group, as there's no section that signals the end of it
-            if (group != new modelGroup()) groups.Add(group);
+            if (group != new ModelGroup()) groups.Add(group);
 
+            //Parsing of the model data
+            foreach (var group2 in groups)
+            {
+                //Read each mesh
+                for (int i = 0; i < group2.vtxPointers.Count; i++)
+                {
+                    SubmeshInfo currentSubmesh = group2.submeshMeta[i];
 
+                    List<Vector3> vertecies = new List<Vector3>();
+                    List<Vector2> texCoords = new List<Vector2>();
+                    List<Triangle> faces = new List<Triangle>();
+
+                    //from /art/feghosts/ghostchaser
+                    //0x63503799 72D28D0D
+                    //0xDC0291B3 11E26127
+                    //0x93359708 679BEB7C
+                    //0x1A833CEE C88C1762
+                    //0xD81AC10B 8980687F
+
+                    //from /art/levels/global
+                    //0x2AA2C56A 0FFA5BDE
+                    //0x5D6C62BA B3F4492E
+                    //0x3CC7AB6B 4821B2DF
+                    //0x408E2B1F 5576A693
+                    //0x0B663399 DF24890D
+                    //0x7EB9853D F4F13EB1
+                    //0x314A20AE FADABB22
+                    //0x0F3F68A2 87C2B716
+                    //0x27F99377 1090E6EB
+                    //0x4E315C83 A856FBF7
+
+                    //from /art/levels/bunker/bundle
+                    //0xF0892648 0A2ABABC
+                    //0xBD15F722 F07FC596
+                    //0xDC81A4F8 C34EE96C
+                    //0xFBACD243 DDCC31B7
+
+                    switch (currentSubmesh.dataFormat)
+                    {
+                        case 0x6350379972D28D0D:
+                            //This format uses bytes to store indecies and short float for vertecies
+                            //Read faces
+                            br3.BaseStream.Position = group2.mdlData.offset + currentSubmesh.indexStartOffset; //Go to index start offset, adding it with mdlData.offset because the offset in SubmeshInfo is relative
+                            for (int c = 0; c < currentSubmesh.indexCount / 3; c++) faces.Add(new Triangle(br3.ReadByte(), br3.ReadByte(), br3.ReadByte())); //Read a triangles/faces
+                            //Read vertex/data block...how do I even call this!?
+                            //Length of "data block" is 0x46, includes XYZ vertex coords in short float
+                            //and UVs in ushort and some dummy data
+                            br3.BaseStream.Position = group2.mdlData.offset + group2.vtxPointers[i]; //Go to data start offset, again adding two values because vtxPointers is relative
+                            for (int c = 0; c < currentSubmesh.vertexCount; c++)
+                            {
+                                vertecies.Add(new Vector3(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()))); //Read vertex coordinates
+                                br3.BaseStream.Position += 0x4; //Skip two unknown values
+                                //float U = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize U coordinate
+                                //float V = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize V coordinate
+                                //texCoords.Add(new Vector2(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16())));
+                                texCoords.Add(NormalizeUvCoordsToFloat(br3.ReadUInt16(), br3.ReadUInt16()));
+                                //texCoords.Add(new Vector2(br3.ReadInt16(), br3.ReadInt16()));
+                                br3.BaseStream.Position += 0x38;
+                            }
+                            WriteWavefrontObj(currentSubmesh.hashID, vertecies, texCoords, faces);
+                            break;
+                        case 0xDC0291B311E26127:
+                            break;
+                        case 0x93359708679BEB7C:
+                            //Luigi's model in /art/levels/global
+                            //This format uses ushorts to store indecies and short float for vertecies
+                            //Read faces
+                            br3.BaseStream.Position = group2.mdlData.offset + currentSubmesh.indexStartOffset; //Go to index start offset, adding it with mdlData.offset because the offset in SubmeshInfo is relative
+                            for (int c = 0; c < currentSubmesh.indexCount / 3; c++) faces.Add(new Triangle(br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt16())); //Read a triangles/faces
+                            //Read vertex/data block...how do I even call this!?
+                            //Length of "data block" is 0x46, includes XYZ vertex coords in short float
+                            //and UVs in ushort and some dummy data
+                            br3.BaseStream.Position = group2.mdlData.offset + group2.vtxPointers[i]; //Go to data start offset, again adding two values because vtxPointers is relative
+                            for (int c = 0; c < currentSubmesh.vertexCount; c++)
+                            {
+                                vertecies.Add(new Vector3(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()))); //Read vertex coordinates
+                                br3.BaseStream.Position += 0x4; //Skip two unknown values
+                                //float U = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize U coordinate
+                                //float V = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize V coordinate
+                                //texCoords.Add(new Vector2(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16())));
+                                texCoords.Add(NormalizeUvCoordsToFloat(br3.ReadUInt16(), br3.ReadUInt16()));
+                                //texCoords.Add(new Vector2(br3.ReadInt16(), br3.ReadInt16()));
+                                br3.BaseStream.Position += 0x8;
+                            }
+                            WriteWavefrontObj(currentSubmesh.hashID, vertecies, texCoords, faces);
+                            break;
+                        case 0x1A833CEEC88C1762:
+                            break;
+                        case 0xD81AC10B8980687F:
+                            break;
+                        case 0x2AA2C56A0FFA5BDE:
+                            break;
+                        case 0x5D6C62BAB3F4492E:
+                            break;
+                        case 0x3CC7AB6B4821B2DF:
+                            break;
+                        case 0x408E2B1F5576A693:
+                            break;
+                        case 0x0B663399DF24890D:
+                            break;
+                        case 0x7EB9853DF4F13EB1:
+                            break;
+                        case 0x314A20AEFADABB22:
+                            break;
+                        case 0x0F3F68A287C2B716:
+                            break;
+                        case 0x27F993771090E6EB:
+                            break;
+                        case 0x4E315C83A856FBF7:
+                            break;
+                        case 0xF08926480A2ABABC:
+                            break;
+                        case 0xBD15F722F07FC596:
+                            break;
+                        case 0xDC81A4F8C34EE96C:
+                            break;
+                        case 0xFBACD243DDCC31B7:
+                            break;
+                        default:
+                            //Default case for when unimplemented model format is used
+                            Console.WriteLine("Unimplemented model data format! 0x" + string.Format("{0:X16}", currentSubmesh.dataFormat));
+                            break;
+                    }
+                    
+                }
+
+                //Mix meshes that have the same hashID
+            }
         }
 
-        static texture ReadTextureMeta(BinaryReader br, uint length, uint offset)
+        /// <summary>
+        /// Saves the decoded model data into a Wavefront OBJ file.
+        /// </summary>
+        /// <param name="hashID">hashID of the model</param>
+        /// <param name="vertecies">List of vertex coordinates</param>
+        /// <param name="texCoords">List of texture coordinates</param>
+        /// <param name="faces">List of faces</param>
+        static void WriteWavefrontObj(uint hashID, List<Vector3> vertecies, List<Vector2> texCoords, List<Triangle> faces)
+        {
+            string obj = ""; //This is where we'll be writing our output
+            for (int i = 0; i < vertecies.Count; i++)
+            {
+                obj += "v " + vertecies[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + vertecies[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + vertecies[i].Z.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
+                obj += "vt " + texCoords[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + texCoords[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
+            }
+            obj += "\r\n";
+            for (int i = 0; i < faces.Count; i++)
+            {
+                obj += string.Format("f {0}/{0} {1}/{1} {2}/{2} \r\n", faces[i].vertex1 + 1, faces[i].vertex2 + 1, faces[i].vertex3 + 1);
+            }
+            File.WriteAllText("C:\\Users\\Sora\\Desktop\\mdltest\\" + hashID.ToString("X8") + ".obj", obj);
+        }
+
+        static Texture ReadTextureMeta(BinaryReader br, uint length, uint offset)
         {
             if (br.ReadUInt32() != 0xE977D350) return null; //Just in case we read a different section
-            texture output = new texture();
+            Texture output = new Texture();
             output.length = length;
             output.offset = offset;
             output.hashID = br.ReadUInt32();
@@ -365,13 +570,6 @@ namespace LM2L
                 try //Put this whole contraption into a try-catch clause, just in case we reach EOF or something else goes wrong
                 {
                     entries.Add(new FileEntry((DataTypes)br.ReadUInt32(), br.ReadUInt32(), br.ReadUInt32()));
-
-                    //vertex/index data format identifiers:
-                    //0x63503799 72D28D0D - short vertex, byte index
-                    //0xDC0291B3 11E26127 - short vertex, ushort index
-                    //0x93359708 679BEB7C
-                    //0x1A833CEE C88C1762
-                    //0xD81AC10B 8980687F
                 }
                 catch
                 {
