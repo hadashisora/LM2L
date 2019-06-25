@@ -280,23 +280,9 @@ namespace LM2L
             float U = 0;
             float V = 0;
             //Normalize U coordinate
-            if (inU >= 0)
-            {
-                U = ((float)inU / (float)0xFFFE) + 0.5f; //Normalize positive range
-            }
-            else
-            {
-                U = ((float)inU / (float)0xFFFE) + 0.5f; //Normalize negative range
-            }
+            U = ((float)inU / (float)0xFFFE) + 0.5f; //Normalize positive range
             //Normalize V coordinate
-            if (inV >= 0)
-            {
-                V = ((float)inV / (float)0xFFFE) + 0.5f; //Normalize positive range
-            }
-            else
-            {
-                V = ((float)inV / (float)0xFFFE) + 0.5f; //Normalize negative range
-            }
+            V = ((float)inV / (float)0xFFFE) + 0.5f; //Normalize positive range
             return new Vector2(U, V);
         }
 
@@ -305,9 +291,9 @@ namespace LM2L
             float U = 0;
             float V = 0;
             //Normalize U coordinate
-            U = ((float)inU / (float)0xFFFF);
+            U = (float)inU / (float)1024;
             //Normalize V coordinate
-            V = ((float)inV / (float)0xFFFF);
+            V = (float)inV / (float)1024;
             return new Vector2(U, V);
         }
 
