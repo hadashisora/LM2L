@@ -6,6 +6,7 @@ Janky program for extracting and parsing files found in Luigi's Mansion 2: Dark 
 * Extract data/dict archive pair along with necessery decompression
 * Extract textures from files within data/dict and decode them from ETC1(A4)
 * Somewhat parse file000 structure into a readable txt file
+* Extracting models to wavefront (alpha atm)
 
 #### Usage for extracting data/dict pair
 * You should understand that each data/dict is a pair, so you can't use one dict to extract other data(correctly that is)
@@ -30,7 +31,7 @@ Janky program for extracting and parsing files found in Luigi's Mansion 2: Dark 
 * `Number files` prefixes output filenames with a numbering that corresponds to the order in which textures are stored in the file, instead of just texture ID. Useful if you're planning to repack the textures back later
 * `Extract mipmaps` will extract textures of all mipmap levels. Serves no purpose whatsoever, as those are just downscaled versions of the full texture. I made it just for compatibility sake
 * `Print file info` prints readable representation of Powe sections into CMD or txt file, useful if you're planning on reinjecting edited stuff
-* `Flip Y axis` flips the output image vertically, so that it looks correct(because game stores textures upside-down). Uncheck this if you don't want textures to be flipped at output(may be useful when injecting textures)
+* `Flip Y axis` flips the output image vertically, so that it looks correct(because game stores textures upside-down). Uncheck this if you don't want textures to be flipped at output(may be useful when injecting textures). This has to be switched off for usage with models
 
 ##### File000 parser usage
 * __Input file000 for parsing__
@@ -40,12 +41,12 @@ Janky program for extracting and parsing files found in Luigi's Mansion 2: Dark 
 #### TODO:
 * (in no particular order, also I give no warranty that I'm gonna do any of those things in the near future)
 * Find out the full specifics of dict files
-* Completely understand the model format(I know that a person on vgresource has already figured out some important stuff, but we need more specifics on the format)
-* Make an extractor for models(to either wavefront or collada, or both)
+* Completely understand the model format
+* ~~Make an extractor for models(to either wavefront or collada, or both)~~ Alpha wavefront exporter is already here
 * Find and reverse animation and cutscene data and make a thing to export it
 * Figure out what purpose other files inside data/dict archives serve, like the file000 which usually begins with 0x01130002
-* Implemet an nloc extractor (replicate functionality of RoadrunnerWMC's python script)
-* Reverse layout data format. File magick seems to be `FENL`. Examples can be found in data/dict archives in romfs\art\fe\<anything that doesn't have _res postfix>
+* Implement nloc extractor (essentially replicate functionality of RoadrunnerWMC's python script)
+* Reverse layout data format. File magic seems to be `FENL`. Examples can be found in data/dict archives in romfs\art\fe\<anything that doesn't have _res postfix>
 * Make options to repack the extracted data(right now it can be done, but only by hand with a hex editor)
 * Turn this into a library for others to use or make a completely new project out of this when most of the research will be over, because current GUI and code organization suck
 

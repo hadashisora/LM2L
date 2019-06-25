@@ -158,7 +158,7 @@
             this.modelInfo.Name = "modelInfo";
             this.modelInfo.Size = new System.Drawing.Size(96, 91);
             this.modelInfo.TabIndex = 2;
-            this.modelInfo.Text = "HashID: none\r\nVertecies: 0\r\nFaces: 0\r\nVertex fmt: none\r\nIndex fmt: none\r\nVertex o" +
+            this.modelInfo.Text = "HashID: none\r\nVertices: 0\r\nFaces: 0\r\nVertex fmt: none\r\nIndex fmt: none\r\nVertex o" +
     "ffset: none\r\nIndex offset: none";
             // 
             // checkBoxEnableWireframe

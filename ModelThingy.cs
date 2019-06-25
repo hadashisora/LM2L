@@ -375,7 +375,7 @@ namespace LM2L
                 {
                     SubmeshInfo currentSubmesh = group2.submeshMeta[i];
 
-                    List<Vector3> vertecies = new List<Vector3>();
+                    List<Vector3> vertices = new List<Vector3>();
                     List<Vector2> texCoords = new List<Vector2>();
                     List<Triangle> faces = new List<Triangle>();
 
@@ -407,7 +407,7 @@ namespace LM2L
                     switch (currentSubmesh.dataFormat)
                     {
                         case 0x6350379972D28D0D:
-                            //This format uses bytes to store indecies and short float for vertecies
+                            //This format uses bytes to store indices and short float for vertices
                             //Read faces
                             br3.BaseStream.Position = group2.mdlData.offset + currentSubmesh.indexStartOffset; //Go to index start offset, adding it with mdlData.offset because the offset in SubmeshInfo is relative
                             for (int c = 0; c < currentSubmesh.indexCount / 3; c++) faces.Add(new Triangle(br3.ReadByte(), br3.ReadByte(), br3.ReadByte())); //Read a triangles/faces
@@ -417,7 +417,7 @@ namespace LM2L
                             br3.BaseStream.Position = group2.mdlData.offset + group2.vtxPointers[i]; //Go to data start offset, again adding two values because vtxPointers is relative
                             for (int c = 0; c < currentSubmesh.vertexCount; c++)
                             {
-                                vertecies.Add(new Vector3(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()))); //Read vertex coordinates
+                                vertices.Add(new Vector3(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()))); //Read vertex coordinates
                                 br3.BaseStream.Position += 0x4; //Skip two unknown values
                                 //float U = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize U coordinate
                                 //float V = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize V coordinate
@@ -426,13 +426,13 @@ namespace LM2L
                                 //texCoords.Add(new Vector2(br3.ReadInt16(), br3.ReadInt16()));
                                 br3.BaseStream.Position += 0x38;
                             }
-                            WriteWavefrontObj(currentSubmesh.hashID, vertecies, texCoords, faces);
+                            WriteWavefrontObj(currentSubmesh.hashID, vertices, texCoords, faces);
                             break;
                         case 0xDC0291B311E26127:
                             break;
                         case 0x93359708679BEB7C:
                             //Luigi's model in /art/levels/global
-                            //This format uses ushorts to store indecies and short float for vertecies
+                            //This format uses ushorts to store indices and short float for vertices
                             //Read faces
                             br3.BaseStream.Position = group2.mdlData.offset + currentSubmesh.indexStartOffset; //Go to index start offset, adding it with mdlData.offset because the offset in SubmeshInfo is relative
                             for (int c = 0; c < currentSubmesh.indexCount / 3; c++) faces.Add(new Triangle(br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt16())); //Read a triangles/faces
@@ -442,7 +442,7 @@ namespace LM2L
                             br3.BaseStream.Position = group2.mdlData.offset + group2.vtxPointers[i]; //Go to data start offset, again adding two values because vtxPointers is relative
                             for (int c = 0; c < currentSubmesh.vertexCount; c++)
                             {
-                                vertecies.Add(new Vector3(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()))); //Read vertex coordinates
+                                vertices.Add(new Vector3(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()))); //Read vertex coordinates
                                 br3.BaseStream.Position += 0x4; //Skip two unknown values
                                 //float U = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize U coordinate
                                 //float V = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize V coordinate
@@ -451,7 +451,7 @@ namespace LM2L
                                 //texCoords.Add(new Vector2(br3.ReadInt16(), br3.ReadInt16()));
                                 br3.BaseStream.Position += 0x8;
                             }
-                            WriteWavefrontObj(currentSubmesh.hashID, vertecies, texCoords, faces);
+                            WriteWavefrontObj(currentSubmesh.hashID, vertices, texCoords, faces);
                             break;
                         case 0x1A833CEEC88C1762:
                             break;
@@ -501,15 +501,15 @@ namespace LM2L
         /// Saves the decoded model data into a Wavefront OBJ file.
         /// </summary>
         /// <param name="hashID">hashID of the model</param>
-        /// <param name="vertecies">List of vertex coordinates</param>
+        /// <param name="vertices">List of vertex coordinates</param>
         /// <param name="texCoords">List of texture coordinates</param>
         /// <param name="faces">List of faces</param>
-        static void WriteWavefrontObj(uint hashID, List<Vector3> vertecies, List<Vector2> texCoords, List<Triangle> faces)
+        static void WriteWavefrontObj(uint hashID, List<Vector3> vertices, List<Vector2> texCoords, List<Triangle> faces)
         {
             string obj = ""; //This is where we'll be writing our output
-            for (int i = 0; i < vertecies.Count; i++)
+            for (int i = 0; i < vertices.Count; i++)
             {
-                obj += "v " + vertecies[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + vertecies[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + vertecies[i].Z.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
+                obj += "v " + vertices[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + vertices[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + vertices[i].Z.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
                 obj += "vt " + texCoords[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + texCoords[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
             }
             obj += "\r\n";
