@@ -157,7 +157,7 @@ namespace LM2L
         {
             public uint indexStartOffset; //relative to buffer start
             public ushort indexCount; //divide by 3 to get face count
-            public ushort idkEven1;
+            public ushort indexFormat; //0x0 - ushort, 0x8000 - byte
             public ushort idkEven2; //increments by 0x4 with each subsequent entry
             public ushort idkEven3;
             public ulong dataFormat;
@@ -168,12 +168,12 @@ namespace LM2L
             public ushort idkEven7; //always 0x100?
             public uint hashID;
 
-            public SubmeshInfo(uint indexStartOffset, ushort indexCount, ushort idkEven1, ushort idkEven2, ushort idkEven3, ulong dataFormat, uint idkEven4,
+            public SubmeshInfo(uint indexStartOffset, ushort indexCount, ushort indexFormat, ushort idkEven2, ushort idkEven3, ulong dataFormat, uint idkEven4,
                 uint idkEven5, uint idkEven6, ushort vertexCount, ushort idkEven7, uint hashID)
             {
                 this.indexStartOffset = indexStartOffset;
                 this.indexCount = indexCount;
-                this.idkEven1 = idkEven1;
+                this.indexFormat = indexFormat;
                 this.idkEven2 = idkEven2;
                 this.idkEven3 = idkEven3;
                 this.dataFormat = dataFormat;
@@ -277,26 +277,225 @@ namespace LM2L
 
         public static Vector2 NormalizeSignedUvCoordsToFloat(short inU, short inV)
         {
-            float U = 0;
-            float V = 0;
             //Normalize U coordinate
-            U = ((float)inU / (float)0xFFFE) + 0.5f; //Normalize positive range
+            float U = ((float)inU / (float)0xFFFE) + 0.5f;
             //Normalize V coordinate
-            V = ((float)inV / (float)0xFFFE) + 0.5f; //Normalize positive range
+            float V = ((float)inV / (float)0xFFFE) + 0.5f;
             return new Vector2(U, V);
         }
 
         public static Vector2 NormalizeUvCoordsToFloat(ushort inU, ushort inV)
         {
-            float U = 0;
-            float V = 0;
             //Normalize U coordinate
-            U = (float)inU / (float)1024;
+            float U = (float)inU / (float)1024;
             //Normalize V coordinate
-            V = (float)inV / (float)1024;
+            float V = (float)inV / (float)1024;
             return new Vector2(U, V);
         }
 
+        class Mesh
+        {
+            public List<Vector3> vertices = new List<Vector3>();
+            public List<Vector2> texCoords = new List<Vector2>();
+            public List<Triangle> faces = new List<Triangle>();
+            public uint hashID;
+
+            public Mesh()
+            {
+
+            }
+
+            public Mesh(List<Vector3> vertices, List<Vector2> texCoords, List<Triangle> faces)
+            {
+                this.vertices = vertices;
+                this.texCoords = texCoords;
+                this.faces = faces;
+            }
+
+            public Mesh(List<Vector3> vertices, List<Vector2> texCoords, List<Triangle> faces, uint hashID)
+            {
+                this.vertices = vertices;
+                this.texCoords = texCoords;
+                this.faces = faces;
+                this.hashID = hashID;
+            }
+
+            /// <summary>
+            /// Merges two meshes into one.
+            /// </summary>
+            /// <param name="input1">Mesh to merge to. This is what gets modified.</param>
+            /// <param name="input2">Mesh to merge with</param>
+            public static void Merge(Mesh input1, Mesh input2)
+            {
+                //Copy all the stuff from the first mesh
+                List<Vector3> vertices = input1.vertices;
+                List<Vector2> texCoords = input1.texCoords;
+                List<Triangle> faces = input1.faces;
+                int vertexCount = vertices.Count; //This is here because apparently assigning input.vertices makes a shallow copy of it, thus
+                                                   //only makes vertices point to the already existing data. Assigning values to ints, thankfully,
+                                                   //copies the actual value.
+
+                //Merge vertices
+                foreach (var vertex in input2.vertices) vertices.Add(vertex);
+                //Merge texture coordinates
+                foreach (var coords in input2.texCoords) texCoords.Add(coords);
+                //Merge faces
+                foreach (var face in input2.faces)
+                {
+                    Triangle newFace = face;
+
+                    //Vertex1 processing
+                    newFace.vertex1 += (ushort)(vertexCount);
+
+                    //Vertex2 processing
+                    newFace.vertex2 += (ushort)(vertexCount);
+
+                    //Vertex3 processing
+                    newFace.vertex3 += (ushort)(vertexCount);
+
+                    faces.Add(newFace);
+                }
+            }
+
+            /// <summary>
+            /// Merges two meshes into one, additionally merging identical vertices.
+            /// </summary>
+            /// <param name="input1">Mesh to merge to</param>
+            /// <param name="input2">Mesh to merge with</param>
+            /// <returns></returns>
+            public static void AdvancedMerge(Mesh input1, Mesh input2)
+            {
+                //Copy all the stuff from the first mesh
+                List<Vector3> vertices = input1.vertices;
+                List<Vector2> texCoords = input1.texCoords;
+                List<Triangle> faces = input1.faces;
+                int vertexCount = vertices.Count;
+
+                int[] mergeLUT = new int[input2.vertices.Count]; //The purpose of this is to provide info on which vertices have been merged and to where. 0 means no merging took place, anything else is the number of vertex that this was merged with + 1
+                for (int i = 0; i < mergeLUT.Length; i++) mergeLUT[i] = 0; //Set everything to 0
+
+                //Merge vertices
+                for (int i = 0; i < input2.vertices.Count; i++)
+                {
+                    bool merged = false;
+                    //Check against all existing vertices
+                    for (int x = 0; x < vertexCount; x++)
+                    {
+                        //Chech if we should merge, for this BOTH vertex coords and texture coords must match up
+                        if (input2.vertices[i] == vertices[x] && input2.texCoords[i] == texCoords[x])
+                        {
+                            merged = true;
+                            mergeLUT[i] = x + 1;
+                            break;
+                        }
+                    }
+                    if (!merged)
+                    {
+                        vertices.Add(input2.vertices[i]);
+                        texCoords.Add(input2.texCoords[i]);
+                    }
+                }
+                //foreach (var coords in input2.texCoords) texCoords.Add(coords);
+                foreach (var face in input2.faces)
+                {
+                    Triangle newFace = face;
+
+                    //Vertex1 processing
+                    if (mergeLUT[newFace.vertex1] == 0)
+                    {
+                        ushort decrease = 0;
+                        for (int i = 0; i < newFace.vertex1; i++)
+                        {
+                            if (mergeLUT[i] != 0) decrease++;
+                        }
+                        newFace.vertex1 += (ushort)(vertexCount - decrease);
+                    }
+                    else newFace.vertex1 = (ushort)(mergeLUT[newFace.vertex1] - 1);
+
+                    //Vertex2 processing
+                    if (mergeLUT[newFace.vertex2] == 0)
+                    {
+                        ushort decrease = 0;
+                        for (int i = 0; i < newFace.vertex2; i++)
+                        {
+                            if (mergeLUT[i] != 0) decrease++;
+                        }
+                        newFace.vertex2 += (ushort)(vertexCount - decrease);
+                    }
+                    else newFace.vertex2 = (ushort)(mergeLUT[newFace.vertex2] - 1);
+
+                    //Vertex3 processing
+                    if (mergeLUT[newFace.vertex3] == 0)
+                    {
+                        ushort decrease = 0;
+                        for (int i = 0; i < newFace.vertex3; i++)
+                        {
+                            if (mergeLUT[i] != 0) decrease++;
+                        }
+                        newFace.vertex3 += (ushort)(vertexCount - decrease);
+                    }
+                    else newFace.vertex3 = (ushort)(mergeLUT[newFace.vertex3] - 1);
+
+                    faces.Add(newFace);
+                }
+            }
+
+            /// <summary>
+            /// Saves the decoded model data into a Wavefront OBJ file.
+            /// </summary>
+            /// <param name="hashID">hashID of the model</param>
+            /// <param name="vertices">List of vertex coordinates</param>
+            /// <param name="texCoords">List of texture coordinates</param>
+            /// <param name="faces">List of faces</param>
+            public static void WriteWavefrontObj(uint hashID, List<Vector3> vertices, List<Vector2> texCoords, List<Triangle> faces)
+            {
+                string obj = ""; //This is where we'll be writing our output
+                for (int i = 0; i < vertices.Count; i++)
+                {
+                    obj += "v " + vertices[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + vertices[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + vertices[i].Z.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
+                    obj += "vt " + texCoords[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + texCoords[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
+                }
+                obj += "\r\n";
+                for (int i = 0; i < faces.Count; i++)
+                {
+                    obj += string.Format("f {0}/{0} {1}/{1} {2}/{2} \r\n", faces[i].vertex1 + 1, faces[i].vertex2 + 1, faces[i].vertex3 + 1);
+                }
+                File.WriteAllText("C:\\Users\\Sora\\Desktop\\mdltest\\" + hashID.ToString("X8") + ".obj", obj);
+            }
+
+            /// <summary>
+            /// Saves mesh into a Wavefront OBJ file.
+            /// </summary>
+            /// <param name="mesh">Mesh to be converted</param>
+            public static void WriteWavefrontObj(Mesh mesh)
+            {
+                string obj = ""; //This is where we'll be writing our output
+                for (int i = 0; i < mesh.vertices.Count; i++)
+                {
+                    obj += "v " + mesh.vertices[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + mesh.vertices[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + mesh.vertices[i].Z.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
+                    obj += "vt " + mesh.texCoords[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + mesh.texCoords[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
+                }
+                obj += "\r\n";
+                for (int i = 0; i < mesh.faces.Count; i++)
+                {
+                    obj += string.Format("f {0}/{0} {1}/{1} {2}/{2} \r\n", mesh.faces[i].vertex1 + 1, mesh.faces[i].vertex2 + 1, mesh.faces[i].vertex3 + 1);
+                }
+                uint count = 1;
+                if (File.Exists("C:\\Users\\Sora\\Desktop\\mdltest\\" + mesh.hashID.ToString("X8") + ".obj"))
+                {
+                    while (File.Exists("C:\\Users\\Sora\\Desktop\\mdltest\\" + mesh.hashID.ToString("X8") + "_" + count + ".obj")) count++;
+                    File.WriteAllText("C:\\Users\\Sora\\Desktop\\mdltest\\" + mesh.hashID.ToString("X8") + "_" + count + ".obj", obj);
+                }
+                else File.WriteAllText("C:\\Users\\Sora\\Desktop\\mdltest\\" + mesh.hashID.ToString("X8") + ".obj", obj);
+            }
+        }
+
+        enum VertexDataFormat
+        {
+            ShortFloat,
+            Float32,
+            Float32_2
+        }
 
         /// <summary>
         /// Parses model data from LM2 files
@@ -356,6 +555,8 @@ namespace LM2L
             //Parsing of the model data
             foreach (var group2 in groups)
             {
+                List<Mesh> meshes = new List<Mesh>();
+
                 //Read each mesh
                 for (int i = 0; i < group2.vtxPointers.Count; i++)
                 {
@@ -390,120 +591,158 @@ namespace LM2L
                     //0xDC81A4F8 C34EE96C
                     //0xFBACD243 DDCC31B7
 
+                    Mesh mesh = new Mesh();
+
+                    //Flags
+                    byte bufferLength = 0; //Buffer length in total
+                    bool hasTextureCoords = false;
+                    VertexDataFormat vtxFmt = VertexDataFormat.ShortFloat;
+                    bool useByteIndex = currentSubmesh.indexFormat == 0x8000 ? true : false; //If true - indices are bytes, false - ushorts
+
+                    //Set up flags based on vertex data format id
                     switch (currentSubmesh.dataFormat)
                     {
                         case 0x6350379972D28D0D:
-                            //This format uses bytes to store indices and short float for vertices
-                            //Read faces
-                            br3.BaseStream.Position = group2.mdlData.offset + currentSubmesh.indexStartOffset; //Go to index start offset, adding it with mdlData.offset because the offset in SubmeshInfo is relative
-                            for (int c = 0; c < currentSubmesh.indexCount / 3; c++) faces.Add(new Triangle(br3.ReadByte(), br3.ReadByte(), br3.ReadByte())); //Read a triangles/faces
-                            //Read vertex/data block...how do I even call this!?
-                            //Length of "data block" is 0x46, includes XYZ vertex coords in short float
-                            //and UVs in ushort and some dummy data
-                            br3.BaseStream.Position = group2.mdlData.offset + group2.vtxPointers[i]; //Go to data start offset, again adding two values because vtxPointers is relative
-                            for (int c = 0; c < currentSubmesh.vertexCount; c++)
-                            {
-                                vertices.Add(new Vector3(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()))); //Read vertex coordinates
-                                br3.BaseStream.Position += 0x4; //Skip two unknown values
-                                //float U = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize U coordinate
-                                //float V = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize V coordinate
-                                //texCoords.Add(new Vector2(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16())));
-                                texCoords.Add(NormalizeUvCoordsToFloat(br3.ReadUInt16(), br3.ReadUInt16()));
-                                //texCoords.Add(new Vector2(br3.ReadInt16(), br3.ReadInt16()));
-                                br3.BaseStream.Position += 0x38;
-                            }
-                            WriteWavefrontObj(currentSubmesh.hashID, vertices, texCoords, faces);
-                            break;
+                            vtxFmt = VertexDataFormat.ShortFloat;
+                            bufferLength = 0x46;
+                            goto unimplemented;
                         case 0xDC0291B311E26127:
-                            break;
+                            goto unimplemented;
                         case 0x93359708679BEB7C:
-                            //Luigi's model in /art/levels/global
-                            //This format uses ushorts to store indices and short float for vertices
-                            //Read faces
-                            br3.BaseStream.Position = group2.mdlData.offset + currentSubmesh.indexStartOffset; //Go to index start offset, adding it with mdlData.offset because the offset in SubmeshInfo is relative
-                            for (int c = 0; c < currentSubmesh.indexCount / 3; c++) faces.Add(new Triangle(br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt16())); //Read a triangles/faces
-                            //Read vertex/data block...how do I even call this!?
-                            //Length of "data block" is 0x46, includes XYZ vertex coords in short float
-                            //and UVs in ushort and some dummy data
-                            br3.BaseStream.Position = group2.mdlData.offset + group2.vtxPointers[i]; //Go to data start offset, again adding two values because vtxPointers is relative
-                            for (int c = 0; c < currentSubmesh.vertexCount; c++)
-                            {
-                                vertices.Add(new Vector3(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()))); //Read vertex coordinates
-                                br3.BaseStream.Position += 0x4; //Skip two unknown values
-                                //float U = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize U coordinate
-                                //float V = (float)br3.ReadUInt16() / (float)0xFFFF; //Read and normalize V coordinate
-                                //texCoords.Add(new Vector2(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16())));
-                                texCoords.Add(NormalizeUvCoordsToFloat(br3.ReadUInt16(), br3.ReadUInt16()));
-                                //texCoords.Add(new Vector2(br3.ReadInt16(), br3.ReadInt16()));
-                                br3.BaseStream.Position += 0x8;
-                            }
-                            WriteWavefrontObj(currentSubmesh.hashID, vertices, texCoords, faces);
-                            break;
+                            vtxFmt = VertexDataFormat.ShortFloat;
+                            bufferLength = 0x16;
+                            goto unimplemented;
                         case 0x1A833CEEC88C1762:
-                            break;
+                            goto unimplemented;
                         case 0xD81AC10B8980687F:
-                            break;
+                            goto unimplemented;
                         case 0x2AA2C56A0FFA5BDE:
-                            break;
+                            goto unimplemented;
                         case 0x5D6C62BAB3F4492E:
-                            break;
+                            goto unimplemented;
                         case 0x3CC7AB6B4821B2DF:
-                            break;
+                            vtxFmt = VertexDataFormat.Float32;
+                            bufferLength = 0x14;
+                            goto unimplemented;
                         case 0x408E2B1F5576A693:
-                            break;
+                            goto unimplemented;
                         case 0x0B663399DF24890D:
-                            break;
+                            goto unimplemented;
                         case 0x7EB9853DF4F13EB1:
-                            break;
+                            goto unimplemented;
                         case 0x314A20AEFADABB22:
-                            break;
+                            goto unimplemented;
                         case 0x0F3F68A287C2B716:
-                            break;
+                            goto unimplemented;
                         case 0x27F993771090E6EB:
-                            break;
+                            goto unimplemented;
                         case 0x4E315C83A856FBF7:
-                            break;
+                            vtxFmt = VertexDataFormat.Float32;
+                            bufferLength = 0x1C;
+                            goto unimplemented;
                         case 0xF08926480A2ABABC:
-                            break;
+                            goto unimplemented;
                         case 0xBD15F722F07FC596:
-                            break;
+                            vtxFmt = VertexDataFormat.Float32_2;
+                            bufferLength = 0x1C;
+                            goto unimplemented;
                         case 0xDC81A4F8C34EE96C:
-                            break;
+                            goto unimplemented;
                         case 0xFBACD243DDCC31B7:
+                            goto unimplemented;
+                        case 0x8A4CC565333626D9:
+                            vtxFmt = VertexDataFormat.Float32_2;
+                            bufferLength = 0x1C;
+                            goto unimplemented;
+                        case 0x5597AF66DC4781DA:
+                            vtxFmt = VertexDataFormat.Float32_2;
+                            bufferLength = 0x1C;
+                            goto unimplemented;
+                        case 0x8B8CE58EAA846002:
+                            goto unimplemented;
+                        unimplemented:
+                            //Case for a known format that hasn't been implemented yet
+                            Console.WriteLine("Unimplemented data format! 0x" + string.Format("{0:X16} @ 0x{1:X8} in {2:D2} id {3:X8}", currentSubmesh.dataFormat, group2.mdlData.offset + group2.vtxPointers[i], i, currentSubmesh.hashID));
                             break;
                         default:
-                            //Default case for when unimplemented model format is used
-                            Console.WriteLine("Unimplemented model data format! 0x" + string.Format("{0:X16}", currentSubmesh.dataFormat));
+                            //Default case for when unknown model format is used
+                            Console.WriteLine("Unknown data format! 0x" + string.Format("{0:X16} @ 0x{1:X8} in {2:D2} id {3:X8}", currentSubmesh.dataFormat, group2.mdlData.offset + group2.vtxPointers[i], i, currentSubmesh.hashID));
                             break;
                     }
-                    
+
+                    if (bufferLength != 0)
+                    {
+                        //Read the actual data
+                        //Read face indices
+                        br3.BaseStream.Position = group2.mdlData.offset + currentSubmesh.indexStartOffset; //Go to index start offset, adding it with mdlData.offset because the offset in SubmeshInfo is relative
+                        if (useByteIndex)
+                            for (int c = 0; c < currentSubmesh.indexCount / 3; c++)
+                                faces.Add(new Triangle(br3.ReadByte(), br3.ReadByte(), br3.ReadByte())); //Read triangles/faces in byte form
+                        else
+                            for (int c = 0; c < currentSubmesh.indexCount / 3; c++)
+                                faces.Add(new Triangle(br3.ReadUInt16(), br3.ReadUInt16(), br3.ReadUInt16())); //Read triangles/faces in ushort form
+
+                        //Read vertex data
+                        if (vtxFmt == VertexDataFormat.ShortFloat)
+                        {
+                            br3.BaseStream.Position = group2.mdlData.offset + group2.vtxPointers[i]; //Go to data start offset, again adding two values because vtxPointers is relative
+                            for (int c = 0; c < currentSubmesh.vertexCount; c++)
+                            {
+                                vertices.Add(new Vector3(UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()), UShortToFloatDecode(br3.ReadInt16()))); //Read vertex coordinates
+                                br3.BaseStream.Position += 0x4; //Skip two unknown values
+                                texCoords.Add(NormalizeUvCoordsToFloat(br3.ReadUInt16(), br3.ReadUInt16()));
+                                br3.BaseStream.Position += bufferLength - 0xE; //Skip all the rest of the data that we don't know the purpose of
+                            }
+                        }
+                        else if (vtxFmt == VertexDataFormat.Float32)
+                        {
+                            br3.BaseStream.Position = group2.mdlData.offset + group2.vtxPointers[i]; //Go to data start offset, again adding two values because vtxPointers is relative
+                            for (int c = 0; c < currentSubmesh.vertexCount; c++)
+                            {
+                                vertices.Add(new Vector3(br3.ReadSingle(), br3.ReadSingle(), br3.ReadSingle())); //Read vertex coordinates
+                                texCoords.Add(new Vector2()); //Add dummy texture coordinates so that WriteWavefrontObj() doesn't crash
+                                br3.BaseStream.Position += bufferLength - 0xC; //Skip all the rest of the data that we don't know the purpose of
+                            }
+                        }
+                        else if (vtxFmt == VertexDataFormat.Float32_2)
+                        {
+                            br3.BaseStream.Position = group2.mdlData.offset + group2.vtxPointers[i] + 0x8; //Go to data start offset, again adding two values because vtxPointers is relative
+                            for (int c = 0; c < currentSubmesh.vertexCount; c++)
+                            {
+                                vertices.Add(new Vector3(br3.ReadSingle(), br3.ReadSingle(), br3.ReadSingle())); //Read vertex coordinates
+                                texCoords.Add(new Vector2()); //Add dummy texture coordinates so that WriteWavefrontObj() doesn't crash
+                                br3.BaseStream.Position += bufferLength - 0x14; //Skip all the rest of the data that we don't know the purpose of
+                            }
+                        }
+
+                        //Add read data into the list
+                        meshes.Add(new Mesh(vertices, texCoords, faces, currentSubmesh.hashID));
+                    }
                 }
 
-                //Mix meshes that have the same hashID
-            }
-        }
+                //Merge meshes that have the same hashID
+                Console.WriteLine("Merging models");
+                List<Mesh> finalMeshes = new List<Mesh>();
+                for (int i = 0; i < meshes.Count; i++)
+                {
+                    bool merged = false;
+                    for (int x = 0; x < finalMeshes.Count; x++)
+                    {
+                        if (meshes[i].hashID == finalMeshes[x].hashID)
+                        {
+                            merged = true;
+                            Mesh.AdvancedMerge(finalMeshes[x], meshes[i]);
+                            Console.WriteLine("Merged 0x" + string.Format("{0:X8}", meshes[i].hashID));
+                            break;
+                        }
+                    }
+                    if (!merged) finalMeshes.Add(meshes[i]);
+                }
 
-        /// <summary>
-        /// Saves the decoded model data into a Wavefront OBJ file.
-        /// </summary>
-        /// <param name="hashID">hashID of the model</param>
-        /// <param name="vertices">List of vertex coordinates</param>
-        /// <param name="texCoords">List of texture coordinates</param>
-        /// <param name="faces">List of faces</param>
-        static void WriteWavefrontObj(uint hashID, List<Vector3> vertices, List<Vector2> texCoords, List<Triangle> faces)
-        {
-            string obj = ""; //This is where we'll be writing our output
-            for (int i = 0; i < vertices.Count; i++)
-            {
-                obj += "v " + vertices[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + vertices[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + vertices[i].Z.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
-                obj += "vt " + texCoords[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + texCoords[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
+                //Save meshes to OBJs
+                Console.WriteLine("Saving models");
+                foreach (var mesh in finalMeshes) Mesh.WriteWavefrontObj(mesh);
             }
-            obj += "\r\n";
-            for (int i = 0; i < faces.Count; i++)
-            {
-                obj += string.Format("f {0}/{0} {1}/{1} {2}/{2} \r\n", faces[i].vertex1 + 1, faces[i].vertex2 + 1, faces[i].vertex3 + 1);
-            }
-            File.WriteAllText("C:\\Users\\Sora\\Desktop\\mdltest\\" + hashID.ToString("X8") + ".obj", obj);
         }
 
         static Texture ReadTextureMeta(BinaryReader br, uint length, uint offset)

@@ -240,15 +240,15 @@ namespace LM2L
                     //size is 0x28, there are as many of these as vertex start offset pointers
                     //@0x00 uint32 indexStartOffset, relative to buffer start
                     //@0x04 uint16 indexCount, divide by 3 to get face count
-                    //@0x06 uint16 idkEven
-                    //@0x08 uint16 idkEven, increments by 0x4 with each subsequent entry
-                    //@0x0A uint16 idkEven
+                    //@0x06 uint16 indexFormat
+                    //@0x08 uint16 idkEven2, increments by 0x4 with each subsequent entry
+                    //@0x0A uint16 idkEven3
                     //@0x0C uint64 somethingVertexDataStructureRelated
-                    //@0x14 uint32 idkEven, always null?
-                    //@0x18 uint32 idkEven, always null?
-                    //@0x1C uint32 idkEven, increments with each subsequent entry
+                    //@0x14 uint32 idkEven4, always null?
+                    //@0x18 uint32 idkEven5, always null?
+                    //@0x1C uint32 idkEven6, increments with each subsequent entry
                     //@0x20 uint16 vertexCount
-                    //@0x22 uint16 idkEven, always 0x100?
+                    //@0x22 uint16 idkEven7, always 0x100?
                     //@0x24 uint32 hashID
 
                     //vertex/index data format identifiers:
