@@ -236,28 +236,6 @@ namespace LM2L
                     //0x1701B502 - texture
                     //0x9201B100 -
 
-                    //*Unrelated to this code* My attempt to decipher submesh info
-                    //size is 0x28, there are as many of these as vertex start offset pointers
-                    //@0x00 uint32 indexStartOffset, relative to buffer start
-                    //@0x04 uint16 indexCount, divide by 3 to get face count
-                    //@0x06 uint16 indexFormat
-                    //@0x08 uint16 idkEven2, increments by 0x4 with each subsequent entry
-                    //@0x0A uint16 idkEven3
-                    //@0x0C uint64 somethingVertexDataStructureRelated
-                    //@0x14 uint32 idkEven4, always null?
-                    //@0x18 uint32 idkEven5, always null?
-                    //@0x1C uint32 idkEven6, increments with each subsequent entry
-                    //@0x20 uint16 vertexCount
-                    //@0x22 uint16 idkEven7, always 0x100?
-                    //@0x24 uint32 hashID
-
-                    //vertex/index data format identifiers:
-                    //0x63503799 72D28D0D - short vertex, byte index
-                    //0xDC0291B3 11E26127 - short vertex, ushort index
-                    //0x93359708 679BEB7C
-                    //0x1A833CEE C88C1762
-                    //0xD81AC10B 8980687F
-
                     output += "\nLength:       0x" + string.Format("{0:X8}", br.ReadUInt32()); //Length of subfile (in file003) in bytes
                     output += "\nStart offset: 0x" + string.Format("{0:X8}", br.ReadUInt32()) + "\n\r"; //Start offset of file (again in file003, relative to it's beginning)
                 }
