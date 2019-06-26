@@ -19,15 +19,6 @@ namespace LM2L
             Console.WriteLine("Luigi's Mansion 2 tool by CHEMI6DER/TheFearsomeDzeraora");
             Console.WriteLine("Usage: use the GUI, I didn't bother with the CLI this time");
             Console.WriteLine("-------------------------------------------------------");
-            Console.WriteLine("Important note: Both Powe and texture files must begin with");
-            Console.WriteLine("the data itself, no preceding data is allowed.");
-            Console.WriteLine("-----------");
-            Console.WriteLine("Another important note: very little is actually known about");
-            Console.WriteLine("file formats in this game, so if the program throws an");
-            Console.WriteLine("exception related to file handling(not to incompetence of the");
-            Console.WriteLine("user to correctly input the proper file paths) please report");
-            Console.WriteLine("to the GitHub issues page with files that caused the crash in");
-            Console.WriteLine("attachements to it.");
             var gui = new MainGui();
             Application.Run(gui);
         }
