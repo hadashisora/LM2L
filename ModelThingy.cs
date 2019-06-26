@@ -488,13 +488,42 @@ namespace LM2L
                 }
                 else File.WriteAllText("C:\\Users\\Sora\\Desktop\\mdltest\\" + mesh.hashID.ToString("X8") + ".obj", obj);
             }
+
+            /// <summary>
+            /// Saves mesh into a Wavefront OBJ file.
+            /// </summary>
+            /// <param name="mesh">Mesh to be converted</param>
+            /// <param name="outPath">Path to output directory, must have \ on the end.</param>
+            public static void WriteWavefrontObj(Mesh mesh, string outPath)
+            {
+                string obj = ""; //This is where we'll be writing our output
+                for (int i = 0; i < mesh.vertices.Count; i++)
+                {
+                    obj += "v " + mesh.vertices[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + mesh.vertices[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + mesh.vertices[i].Z.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
+                    obj += "vt " + mesh.texCoords[i].X.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + " " + mesh.texCoords[i].Y.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) + "\r\n";
+                }
+                obj += "\r\n";
+                for (int i = 0; i < mesh.faces.Count; i++)
+                {
+                    obj += string.Format("f {0}/{0} {1}/{1} {2}/{2} \r\n", mesh.faces[i].vertex1 + 1, mesh.faces[i].vertex2 + 1, mesh.faces[i].vertex3 + 1);
+                }
+                uint count = 1;
+                if (!Directory.Exists(outPath)) Directory.CreateDirectory(outPath);
+                if (File.Exists(outPath + mesh.hashID.ToString("X8") + ".obj"))
+                {
+                    while (File.Exists(outPath + mesh.hashID.ToString("X8") + "_" + count + ".obj")) count++;
+                    File.WriteAllText(outPath + mesh.hashID.ToString("X8") + "_" + count + ".obj", obj);
+                }
+                else File.WriteAllText(outPath + mesh.hashID.ToString("X8") + ".obj", obj);
+            }
         }
 
         enum VertexDataFormat
         {
             ShortFloat,
             Float32,
-            Float32_2
+            Float32_2,
+            Float32_3
         }
 
         /// <summary>
@@ -552,6 +581,8 @@ namespace LM2L
             //Save the last model group, as there's no section that signals the end of it
             if (group != new ModelGroup()) groups.Add(group);
 
+            uint groupCount = 0; //Yeah that's a bodge for file path...
+
             //Parsing of the model data
             foreach (var group2 in groups)
             {
@@ -597,6 +628,11 @@ namespace LM2L
                     byte bufferLength = 0; //Buffer length in total
                     bool hasTextureCoords = false;
                     VertexDataFormat vtxFmt = VertexDataFormat.ShortFloat;
+                    if (currentSubmesh.indexFormat != 0x8000 && currentSubmesh.indexFormat != 0x0)
+                    {
+                        Console.WriteLine("Unknown index fmt! 0x" + string.Format("{0:X8} @ 0x{1:X8} in {2:D2} id {3:X8}", currentSubmesh.indexFormat, group2.mdlData.offset + currentSubmesh.indexStartOffset, i, currentSubmesh.hashID));
+                        return; //Stop the whole thing if we encounter an unknown index format
+                    }
                     bool useByteIndex = currentSubmesh.indexFormat == 0x8000 ? true : false; //If true - indices are bytes, false - ushorts
 
                     //Set up flags based on vertex data format id
@@ -605,64 +641,96 @@ namespace LM2L
                         case 0x6350379972D28D0D:
                             vtxFmt = VertexDataFormat.ShortFloat;
                             bufferLength = 0x46;
-                            goto unimplemented;
+                            goto partiallyImplemented;
                         case 0xDC0291B311E26127:
-                            goto unimplemented;
+                            vtxFmt = VertexDataFormat.ShortFloat;
+                            bufferLength = 0x16;
+                            goto partiallyImplemented;
                         case 0x93359708679BEB7C:
                             vtxFmt = VertexDataFormat.ShortFloat;
                             bufferLength = 0x16;
-                            goto unimplemented;
+                            goto partiallyImplemented;
                         case 0x1A833CEEC88C1762:
-                            goto unimplemented;
+                            vtxFmt = VertexDataFormat.ShortFloat;
+                            bufferLength = 0x46;
+                            goto partiallyImplemented;
                         case 0xD81AC10B8980687F:
-                            goto unimplemented;
+                            //Observed oddity: scale is way smaller compared to other ShortFloat formats, might be that all other formats are oversized...
+                            vtxFmt = VertexDataFormat.ShortFloat;
+                            bufferLength = 0x16;
+                            goto partiallyImplemented;
                         case 0x2AA2C56A0FFA5BDE:
-                            goto unimplemented;
+                            vtxFmt = VertexDataFormat.ShortFloat;
+                            bufferLength = 0x1A;
+                            goto partiallyImplemented;
                         case 0x5D6C62BAB3F4492E:
-                            goto unimplemented;
+                            vtxFmt = VertexDataFormat.ShortFloat;
+                            bufferLength = 0x16;
+                            goto partiallyImplemented;
                         case 0x3CC7AB6B4821B2DF:
                             vtxFmt = VertexDataFormat.Float32;
                             bufferLength = 0x14;
-                            goto unimplemented;
+                            goto partiallyImplemented;
                         case 0x408E2B1F5576A693:
-                            goto unimplemented;
+                            vtxFmt = VertexDataFormat.Float32_3;
+                            bufferLength = 0x10;
+                            goto partiallyImplemented;
                         case 0x0B663399DF24890D:
-                            goto unimplemented;
+                            vtxFmt = VertexDataFormat.Float32_3;
+                            bufferLength = 0x18;
+                            goto partiallyImplemented;
                         case 0x7EB9853DF4F13EB1:
-                            goto unimplemented;
+                            vtxFmt = VertexDataFormat.Float32_3;
+                            bufferLength = 0x18;
+                            goto partiallyImplemented;
                         case 0x314A20AEFADABB22:
-                            goto unimplemented;
+                            vtxFmt = VertexDataFormat.Float32_3;
+                            bufferLength = 0x18;
+                            goto partiallyImplemented;
                         case 0x0F3F68A287C2B716:
-                            goto unimplemented;
+                            vtxFmt = VertexDataFormat.Float32_3;
+                            bufferLength = 0x18;
+                            goto partiallyImplemented;
                         case 0x27F993771090E6EB:
-                            goto unimplemented;
+                            vtxFmt = VertexDataFormat.Float32_3;
+                            bufferLength = 0x1C;
+                            goto partiallyImplemented;
                         case 0x4E315C83A856FBF7:
                             vtxFmt = VertexDataFormat.Float32;
                             bufferLength = 0x1C;
-                            goto unimplemented;
+                            goto partiallyImplemented;
                         case 0xF08926480A2ABABC:
                             goto unimplemented;
                         case 0xBD15F722F07FC596:
-                            vtxFmt = VertexDataFormat.Float32_2;
+                            //UVs are wrong on this one...except for a few cases
+                            vtxFmt = VertexDataFormat.Float32_3;
                             bufferLength = 0x1C;
-                            goto unimplemented;
+                            goto partiallyImplemented;
                         case 0xDC81A4F8C34EE96C:
                             goto unimplemented;
                         case 0xFBACD243DDCC31B7:
-                            goto unimplemented;
+                            vtxFmt = VertexDataFormat.Float32_3;
+                            bufferLength = 0x1C;
+                            goto partiallyImplemented;
                         case 0x8A4CC565333626D9:
                             vtxFmt = VertexDataFormat.Float32_2;
                             bufferLength = 0x1C;
-                            goto unimplemented;
+                            goto partiallyImplemented;
                         case 0x5597AF66DC4781DA:
                             vtxFmt = VertexDataFormat.Float32_2;
                             bufferLength = 0x1C;
-                            goto unimplemented;
+                            goto partiallyImplemented;
                         case 0x8B8CE58EAA846002:
+                            vtxFmt = VertexDataFormat.Float32_3;
+                            bufferLength = 0x14;
                             goto unimplemented;
                         unimplemented:
                             //Case for a known format that hasn't been implemented yet
                             Console.WriteLine("Unimplemented data format! 0x" + string.Format("{0:X16} @ 0x{1:X8} in {2:D2} id {3:X8}", currentSubmesh.dataFormat, group2.mdlData.offset + group2.vtxPointers[i], i, currentSubmesh.hashID));
+                            break;
+                        partiallyImplemented:
+                            //Case for when a known format is somewhat implemented, but not fully understood
+                            Console.WriteLine("Partially implemented! 0x" + string.Format("{0:X16} @ 0x{1:X8} in {2:D2} id {3:X8}", currentSubmesh.dataFormat, group2.mdlData.offset + group2.vtxPointers[i], i, currentSubmesh.hashID));
                             break;
                         default:
                             //Default case for when unknown model format is used
@@ -714,6 +782,17 @@ namespace LM2L
                                 br3.BaseStream.Position += bufferLength - 0x14; //Skip all the rest of the data that we don't know the purpose of
                             }
                         }
+                        else if (vtxFmt == VertexDataFormat.Float32_3)
+                        {
+                            br3.BaseStream.Position = group2.mdlData.offset + group2.vtxPointers[i]; //Go to data start offset, again adding two values because vtxPointers is relative
+                            for (int c = 0; c < currentSubmesh.vertexCount; c++)
+                            {
+                                vertices.Add(new Vector3(br3.ReadSingle(), br3.ReadSingle(), br3.ReadSingle())); //Read vertex coordinates
+                                br3.BaseStream.Position += 0x4; //Skip two unknown values
+                                texCoords.Add(NormalizeUvCoordsToFloat(br3.ReadUInt16(), br3.ReadUInt16()));
+                                br3.BaseStream.Position += bufferLength - 0x14; //Skip all the rest of the data that we don't know the purpose of
+                            }
+                        }
 
                         //Add read data into the list
                         meshes.Add(new Mesh(vertices, texCoords, faces, currentSubmesh.hashID));
@@ -741,7 +820,9 @@ namespace LM2L
 
                 //Save meshes to OBJs
                 Console.WriteLine("Saving models");
-                foreach (var mesh in finalMeshes) Mesh.WriteWavefrontObj(mesh);
+                string outPath = Path.GetDirectoryName(file000path) + "\\mdl_extract\\group_" + string.Format("{0:D2}\\", groupCount);
+                foreach (var mesh in finalMeshes) Mesh.WriteWavefrontObj(mesh, outPath);
+                groupCount++;
             }
         }
 
